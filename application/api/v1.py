@@ -14,12 +14,6 @@ v1 = APIRouter()
 
 # Move to env variables later on 
 
-@v1.get("/test")
-async def test():
-     with db.session() as conn:
-          test = conn.query(database.User).all()
-     return test
-
 
 @v1.post("/login", tags=["User login / Authentication management"])
 async def login(data: UserLogin):
@@ -171,8 +165,9 @@ async def list_activity_logs(request: Request, token: str = Header(None)):
 @LoginHandler.authenticate_user
 async def get_cameras(request: Request, response: Response, token: str = Header(None),):
      '''
-     Create a user in our database
-     Can only be accessed by the superadmin OR users with "CREATE_USER permission"
+     Fetch all cameras assigned to the user
+     If the user is a superadmin then fetch all cameras in the system
+     Can only be accessed by the superadmin OR users with "VIEW_CAMERA permission"
      '''
      permission_required = "VIEW_CAMERA"
      try:
@@ -192,8 +187,9 @@ async def get_cameras(request: Request, response: Response, token: str = Header(
 @LoginHandler.authenticate_user
 async def create_camera(data: CreateCamera, request: Request, response: Response, token: str = Header(None),):
      '''
-     Create a user in our database
-     Can only be accessed by the superadmin OR users with "CREATE_USER permission"
+     Create a camera in our database
+     This will also assign the camera to the user who created it by default (Superadmin in our case)
+     Can only be accessed by the superadmin OR users with "CREATE_CAMERA permission"
      '''
      permission_required = "CREATE_CAMERA"
      try:
@@ -202,6 +198,99 @@ async def create_camera(data: CreateCamera, request: Request, response: Response
          camera_management = CameraManagement()
          response.status_code = 201
          return {"responseData":{"message":"Camera created!", "data":camera_management.create_camera(data,auth_data)}}
+     except Error as e:
+          # Pass through any custom raised errors as-is
+          raise
+     except Exception as e:
+          traceback.print_exc()
+          # Handle anything exceptional that we have not encountered anywhere
+          raise Error(status_code=500,details="Something went wrong!")
+
+
+@v1.post("/camera/assign", tags=["Camera Management"])
+@LoginHandler.authenticate_user
+async def assign_camera(data: AssignCamera, request: Request, response: Response, token: str = Header(None),):
+     '''
+     Assign a camera to a user
+     Can only be accessed by users with "ASSIGN_CAMERA permission"
+     '''
+     permission_required = "ASSIGN_CAMERA"
+     try:
+         auth_data = assign_camera.auth_data
+         require_permissions(auth_data, permission_required)
+         camera_management = CameraManagement()
+         response.status_code = 201
+         return {"responseData":{"message":"Camera assigned!", "data":camera_management.assign_camera(data,auth_data)}}
+     except Error as e:
+          # Pass through any custom raised errors as-is
+          raise
+     except Exception as e:
+          traceback.print_exc()
+          # Handle anything exceptional that we have not encountered anywhere
+          raise Error(status_code=500,details="Something went wrong!")
+     
+# delete camera
+@v1.delete("/camera", tags=["Camera Management"])
+@LoginHandler.authenticate_user
+async def delete_camera(data: DeleteCamera, request: Request, response: Response, token: str = Header(None),):
+     '''
+     Delete a camera in our database
+     Can only be accessed by the superadmin OR users with "DELETE_CAMERA permission"
+     '''
+     permission_required = "DELETE_CAMERA"
+     try:
+         auth_data = delete_camera.auth_data
+         require_permissions(auth_data, permission_required)
+         camera_management = CameraManagement()
+         response.status_code = 200
+         return {"responseData":{"message":"Camera deleted!", "data":camera_management.delete_camera(data,auth_data)}}
+     except Error as e:
+          # Pass through any custom raised errors as-is
+          raise
+     except Exception as e:
+          traceback.print_exc()
+          # Handle anything exceptional that we have not encountered anywhere
+          raise Error(status_code=500,details="Something went wrong!")     
+
+
+# Edit camera
+@v1.patch("/camera", tags=["Camera Management"])
+@LoginHandler.authenticate_user
+async def edit_camera(data: ModifyCamera, request: Request, response: Response, token: str = Header(None),):
+     '''
+     Edit a camera in our database
+     Can only be accessed by users with "EDIT_CAMERA permission"
+     '''
+     permission_required = "EDIT_CAMERA"
+     try:
+         auth_data = edit_camera.auth_data
+         require_permissions(auth_data, permission_required)
+         camera_management = CameraManagement()
+         response.status_code = 200
+         return {"responseData":{"message":"Camera modified!", "data":camera_management.modify_camera(data,auth_data)}}
+     except Error as e:
+          # Pass through any custom raised errors as-is
+          raise
+     except Exception as e:
+          traceback.print_exc()
+          # Handle anything exceptional that we have not encountered anywhere
+          raise Error(status_code=500,details="Something went wrong!")
+
+# Deassign user from camera
+@v1.post("/camera/deassign", tags=["Camera Management"])
+@LoginHandler.authenticate_user
+async def deassign_camera(data: DeassignCamera, request: Request, response: Response, token: str = Header(None),):
+     '''
+     Deassign a camera from a user
+     Can only be accessed by users with "ASSIGN_CAMERA" permission"
+     '''
+     permission_required = "ASSIGN_CAMERA"
+     try:
+         auth_data = deassign_camera.auth_data
+         require_permissions(auth_data, permission_required)
+         camera_management = CameraManagement()
+         response.status_code = 200
+         return {"responseData":{"message":"Camera deassigned!", "data":camera_management.deassign_camera(data,auth_data)}}
      except Error as e:
           # Pass through any custom raised errors as-is
           raise

@@ -20,6 +20,7 @@ class LoginHandler():
         self.SECRET_KEY = SECRET_KEY
         self.ALGORITHM = ALGORITHIM
         self.ACCESS_TOKEN_EXPIRE_MINUTES = 10
+        self.REFRESH_TOKEN_EXPIRE_MINUTES = 60 * 24 * 1 # 1 day
         self.context = CryptContext(schemes=["bcrypt"], deprecated="auto")
         self.conn = None
         self.redis_client = None
@@ -35,6 +36,11 @@ class LoginHandler():
         to_encode.update({"exp": expire})
         return jwt.encode(to_encode, self.SECRET_KEY, algorithm=self.ALGORITHM)
 
+    def create_refresh_token(self, data: dict):
+        to_encode = data.copy()
+        expire = datetime.utcnow() + timedelta(minutes=self.REFRESH_TOKEN_EXPIRE_MINUTES)
+        to_encode.update({"exp": expire})
+        return jwt.encode(to_encode, self.SECRET_KEY, algorithm=self.ALGORITHM)
     
     def hash_password(self,plain_password):
         return self.context.hash(plain_password)
@@ -64,7 +70,7 @@ class LoginHandler():
 
                 
                 # Generate a token for the user
-                data = {"user_id": existing_user.id,"user_name": existing_user.name, "user_email": existing_user.email}
+                data = {"user_id": existing_user.id,"user_name": existing_user.name, "user_email": existing_user.email, "user_role": existing_user.roles[0].name, "user_rank": existing_user.roles[0].rank}
                 user_token = self.create_access_token(data)
                 key = f"user_token:{existing_user.email}"
                 rc.setex(key,self.ACCESS_TOKEN_EXPIRE_MINUTES * 60,json.dumps(data))
