@@ -44,7 +44,6 @@ class User(Base):
 
     role_links = relationship('UserRoleMap', back_populates='user', cascade="all, delete-orphan")
     roles = relationship('Role', secondary='user_role_map', back_populates='users', viewonly=True)
-    cameras = relationship('Camera', back_populates='user')
 
 
 class Role(Base):
@@ -83,12 +82,11 @@ class Camera(Base):
     device_name = Column(String(255), nullable=False)
     device_ip = Column(String(255), nullable=False)
     device_location = Column(String(255), nullable=False)
-    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    created_by = Column(String(255), nullable=False)
     created_on = Column(Date, nullable=False)
     updated_by = Column(String(255), nullable=False)
     updated_on = Column(String(255), nullable=False)  # Per schema
-
-    user = relationship('User', back_populates='cameras')
+    
 
 class CameraAssignmentMap(Base):
     __tablename__ = 'camera_assignment_map'

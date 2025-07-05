@@ -8,6 +8,7 @@ import traceback
 from typing import Annotated
 from application.service import *
 from application.user_management import UserManagement
+from application.camera_management import CameraManagement
 
 v1 = APIRouter()
 
@@ -166,7 +167,7 @@ async def list_activity_logs(request: Request, token: str = Header(None)):
           # Handle anything exceptional that we have not encountered anywhere
           raise Error(status_code=500,details="Something went wrong!")
 
-@v1.post("/camera", tags=["Camera Management"])
+@v1.get("/camera", tags=["Camera Management"])
 @LoginHandler.authenticate_user
 async def get_cameras(request: Request, response: Response, token: str = Header(None),):
      '''
@@ -175,11 +176,32 @@ async def get_cameras(request: Request, response: Response, token: str = Header(
      '''
      permission_required = "VIEW_CAMERA"
      try:
-         auth_data = create_user.auth_data
+         auth_data = get_cameras.auth_data
          require_permissions(auth_data, permission_required)
-         user_management = UserManagement()
+         camera_management = CameraManagement()
+         return {"responseData": camera_management.list_all_cameras(auth_data)}
+     except Error as e:
+          # Pass through any custom raised errors as-is
+          raise
+     except Exception as e:
+          traceback.print_exc()
+          # Handle anything exceptional that we have not encountered anywhere
+          raise Error(status_code=500,details="Something went wrong!")
+
+@v1.post("/camera", tags=["Camera Management"])
+@LoginHandler.authenticate_user
+async def create_camera(data: CreateCamera, request: Request, response: Response, token: str = Header(None),):
+     '''
+     Create a user in our database
+     Can only be accessed by the superadmin OR users with "CREATE_USER permission"
+     '''
+     permission_required = "CREATE_CAMERA"
+     try:
+         auth_data = create_camera.auth_data
+         require_permissions(auth_data, permission_required)
+         camera_management = CameraManagement()
          response.status_code = 201
-         return {"responseData":{"message":"User created!", "data":user_management.get_cameras(auth_data)}}
+         return {"responseData":{"message":"Camera created!", "data":camera_management.create_camera(data,auth_data)}}
      except Error as e:
           # Pass through any custom raised errors as-is
           raise

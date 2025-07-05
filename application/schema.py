@@ -23,3 +23,8 @@ class ModifyUser(BaseModel):
 
 class DeleteUser(BaseModel):
     user_email: str = Field(min_length=1)
+
+class CreateCamera(BaseModel):
+    device_name: str = Field(min_length=1)
+    device_ip: str = Field(min_length=1)
+    device_location: str = Field(min_length=1)
