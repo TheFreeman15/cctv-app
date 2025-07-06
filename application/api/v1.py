@@ -62,7 +62,6 @@ async def list_users(request: Request, token: str = Header(None)):
      try:
          require_permissions(list_users.auth_data, permission_required)
          user_management = UserManagement()
-         print("TESTttttttt>>>", user_management.list_all_users())
          return {"responseData": user_management.list_all_users()}
      except Error as e:
           # Pass through any custom raised errors as-is
@@ -101,7 +100,7 @@ async def create_user(data: CreateUser, request: Request, response: Response, to
 async def edit_user(data: ModifyUser, request: Request, response: Response, token: str = Header(None),):
      '''
      Delete a user in our database
-     Can only be accessed by the superadmin OR users with "DELETE_USER permission"
+     Can only be accessed by the superadmin OR users with "EDIT_USER permission"
      '''
 
      permission_required = "EDIT_USER"
