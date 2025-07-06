@@ -129,3 +129,10 @@ cd <project-directory>
 
 # Build and start all services
 docker-compose up -d --build
+
+Swagger will be available at http://localhost:8000/docs
+Use below details for default login 
+{
+  "email": "hritik1509@gmail.com",
+  "password": "suadminpass321"
+}
