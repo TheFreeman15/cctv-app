@@ -25,7 +25,7 @@ The system uses 7 tables:
 6. **Cameras** – Cameras and their associated details  
 7. **camera_assignment_map** – Many-to-many mapping of cameras to users  
 
-> 📊 _[Insert schema/image visualization here]_
+> 📊 Datbase Strucutre ![Db Structure](db_structure.png "Db Structure")
 
 A seed script is available at `sql/001_init_schema.sql`. This sets up all required schema and the first superadmin. It only runs during the first setup.
 
