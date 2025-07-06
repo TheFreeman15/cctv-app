@@ -1,0 +1,70 @@
+networks:
+  shared-net:
+    external: false
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql-db
+    environment:
+      MYSQL_ROOT_PASSWORD: cctv-rootpass
+      MYSQL_DATABASE: cctvdb
+      MYSQL_USER: cctvdbuser
+      MYSQL_PASSWORD: dbpass321
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./sql:/docker-entrypoint-initdb.d
+    command: --default-authentication-plugin=mysql_native_password
+
+    networks:
+      - shared-net
+
+  redis:
+    image: redis:7
+    container_name: redis-cache
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - shared-net
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin
+    environment:
+      PMA_HOST: mysql
+      PMA_USER: root
+      PMA_PASSWORD: cctv-rootpass
+      PMA_ARBITRARY: 1
+    ports:
+      - "8080:80"
+    depends_on:
+      - mysql
+    networks:
+      - shared-net
+  
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile 
+    image: cctv-app:latest
+    container_name: cctv-backend
+    environment:
+      DB_CONNECTION_STRING: '{"dialect": "mysql", "username": "root", "password": "cctv-rootpass", "host": "mysql", "port": "3306", "db_name": "cctvdb"}'
+      REDIS_CONNECTION_STRING: '{"host": "redis", "port": "6379", "db": 0, "password": ""}'
+      SECRET_KEY: 'JWTENCODESECRET321'
+      ALGORITHIM: 'HS256'
+      SUPERADMIN_RANK: '1'
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - shared-net
+
+volumes:
+  mysql_data:
+  redis_data:

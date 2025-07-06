@@ -6,10 +6,10 @@ from functools import wraps
 from datetime import datetime
 from .authentication import LoginHandler
 from .service import audit_log
+import os
 
 
-
-config = {"dialect": "mysql", "username": "root", "password": "cctv-rootpass", "host": "mysql", "port": "3306", "db_name": "cctvdb"}
+config = json.loads(os.getenv('DB_CONNECTION_STRING', {}))
 db = database.DatabaseResource(config)
 
 
@@ -137,7 +137,6 @@ class UserManagement():
         '''
         Delete a user from our database
         '''
-        #TODO: Hide password from response data
         user_email = data.user_email
         if user_email == auth_data["user_email"]:
             raise Error(status_code=400, details="You cannot delete your own account!")
@@ -147,7 +146,7 @@ class UserManagement():
             if not user_exists:
                 raise Error(status_code=400, details="User does not exist!")
 
-            # Delete rhe user_role_map entry for this user
+            # Delete the user_role_map entry for this user
             user_role_map_exists = conn.query(database.UserRoleMap).filter(database.UserRoleMap.user_id == user_exists.id).first()
             if user_role_map_exists:
                 conn.delete(user_role_map_exists)

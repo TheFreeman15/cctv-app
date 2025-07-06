@@ -1,7 +1,7 @@
 fastapi==0.111.0
 uvicorn==0.35.0
 mysqlclient==2.2.7
-SQLAlchemy==2.0.41
+SQLAlchemy==1.4.14
 passlib==1.7.4
 pyjwt
 redis==6.2.0

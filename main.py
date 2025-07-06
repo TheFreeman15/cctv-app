@@ -7,7 +7,7 @@ import datetime
 
 # from middleware import Middle
 
-app = FastAPI()
+app = FastAPI(title="CCTV Management App", version="1.0.0", description="CCTV Application API")
 
 
 

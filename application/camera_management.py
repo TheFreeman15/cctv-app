@@ -6,13 +6,13 @@ from functools import wraps
 from datetime import datetime
 from .authentication import LoginHandler
 from .service import audit_log
+import os
 
-
-config = {"dialect": "mysql", "username": "root", "password": "cctv-rootpass", "host": "mysql", "port": "3306", "db_name": "cctvdb"}
+config = json.loads(os.getenv('DB_CONNECTION_STRING', {}))
 db = database.DatabaseResource(config)
 
-#TODO: Drive this from env variables
-SUPERADMIN_RANK = 1
+
+SUPERADMIN_RANK = int(os.getenv('SUPERADMIN_RANK', 1))
 
 class CameraManagement():
 

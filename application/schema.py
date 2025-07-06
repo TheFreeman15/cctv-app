@@ -1,14 +1,21 @@
-from pydantic import BaseModel, Field,EmailStr
+from pydantic import BaseModel, Field,EmailStr,model_validator
 from typing import Optional
 
 
 
 class UserLogin(BaseModel):
     email: EmailStr = Field(min_length=1,default="user@gmail.com")
-    password: str = Field(min_length=1, default="UserPassword")
+    password: Optional[str] = Field(min_length=1, default="UserPassword")
+    refresh_token: Optional[str] = Field(min_length=1, default=None)
+
+    @model_validator(mode='before')
+    @classmethod
+    def validate(cls,values):
+        if not values.get('password') and not values.get('refresh_token'):
+            raise ValueError("Either password or refresh_token must be provided")
+        return values
 
 class CreateUser(BaseModel):
-    #TODO: EMail validators ???
     user_name: str = Field(min_length=1, default="UserName")
     user_email: EmailStr = Field(min_length=1, default="admin@gmail.com")
     role: str = Field(min_length=1, default="supervisor")

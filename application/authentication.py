@@ -6,13 +6,15 @@ from datetime import datetime,timedelta
 import redis
 import json
 from functools import wraps
+import os
 
-config = {"dialect": "mysql", "username": "root", "password": "cctv-rootpass", "host": "mysql", "port": "3306", "db_name": "cctvdb"}
+config = json.loads(os.getenv('DB_CONNECTION_STRING', {}))
+
 db = database.DatabaseResource(config)
 
-#TODO: Move this to env variables 
-SECRET_KEY = "JWTENCODESECRET321"
-ALGORITHIM = "HS256"
+
+SECRET_KEY = os.getenv('SECRET_KEY','')
+ALGORITHIM =  os.getenv('ALGORITHIM','HS256')
 
 class LoginHandler():
     def __init__(self):
@@ -49,7 +51,7 @@ class LoginHandler():
         return self.context.verify(plain_password,password_hashed)
     
     
-    def login_user(self, email, plain_password):
+    def login_user(self, email, plain_password,refresh_token):
         # Initialize a DB session if one is not created
         if self.conn is None:
             with db.session() as conn:
@@ -58,23 +60,48 @@ class LoginHandler():
                 if existing_user is None:
                     raise Error(status_code=400,details="User does not exist!")
                 
-                # Validate if the password matches the hash using passlib verify
-                valid_password = self.verify_password(existing_user.hashed_password, plain_password)
-                if not valid_password:
-                    raise Error(status_code=400,details="Incorrect password!")
-                
-
-                # Check in redis if for this user
                 self.create_redis_client()
                 rc = self.redis_client
+                # If refresh token is provided. it will be used to validate the user
+
+                data = {"user_id": existing_user.id,"user_name": existing_user.name, "user_email": existing_user.email, "user_role": existing_user.roles[0].name, "user_rank": existing_user.roles[0].rank}
+                refresh_token_key = f"refresh_token:{existing_user.email}"
+                access_token_key = f"user_token:{existing_user.email}"
+                if refresh_token:
+                    try:
+                        payload = jwt.decode(refresh_token,SECRET_KEY,ALGORITHIM)
+                        if payload["user_email"] != email:
+                            raise Error(status_code=400,details="Invalid token/user")
+                        refresh_token_data = rc.get(f"refresh_token:{email}")
+                        if refresh_token_data is None:
+                            raise Error(status_code=401,details="Invalid refresh token!")
+                    except jwt.ExpiredSignatureError:
+                        raise Error(status_code=401, details="Token expired") 
+                    except Exception as e:
+                        raise Error(status_code=401,details="Invalid token!")
+                else:
+                    # Validate if the password matches the hash using passlib verify
+                    valid_password = self.verify_password(existing_user.hashed_password, plain_password)
+                    if not valid_password:
+                        raise Error(status_code=400,details="Incorrect password!")
+                    refresh_token = self.create_refresh_token(data)
+                    data["token_type"] = "refresh"
+                    data["token"] = refresh_token
+                    rc.setex(refresh_token_key,self.REFRESH_TOKEN_EXPIRE_MINUTES * 60, json.dumps(data))
 
                 
-                # Generate a token for the user
-                data = {"user_id": existing_user.id,"user_name": existing_user.name, "user_email": existing_user.email, "user_role": existing_user.roles[0].name, "user_rank": existing_user.roles[0].rank}
+                data.pop("token", None)
                 user_token = self.create_access_token(data)
-                key = f"user_token:{existing_user.email}"
-                rc.setex(key,self.ACCESS_TOKEN_EXPIRE_MINUTES * 60,json.dumps(data))
-                return {"message": "Login sucessful", "token": user_token, "data": data}
+                data["token_type"] = "access"
+                rc.setex(access_token_key,self.ACCESS_TOKEN_EXPIRE_MINUTES * 60,json.dumps(data))
+                
+                # remove token and token_type from data
+                data.pop("token", None)
+                data.pop("token_type", None)
+                
+                
+                
+                return {"message": "Login sucessful", "access_token": user_token,"refresh_token": refresh_token, "data": data}
 
 
 
@@ -106,14 +133,20 @@ class LoginHandler():
             
             key = f"user_token:{payload['user_email']}"
 
-            #TODO: Can be improved to be only called on service startup
-            rc = redis.Redis(host='redis', port=6379,decode_responses=True)
+            redis_connection_string = os.getenv('REDIS_CONNECTION_STRING', None)
+            if not redis_connection_string:
+                raise Error(status_code=500, details="Redis connection string not found in environment variables!")
+            
+            redis_connection_string = json.loads(redis_connection_string)
+
+            rc = redis.Redis(host=redis_connection_string["host"], port=redis_connection_string["port"],decode_responses=True)
             
             cache_data = rc.get(key)
-            cache_data = json.loads(cache_data)
+            
             if cache_data is None:
                 raise Error(status_code=401,details="Invalid token!")
             else:
+                cache_data = json.loads(cache_data)
                 if payload["user_email"] != cache_data["user_email"]:
                     raise Error(status_code=400,details="Invalid token/user")
             

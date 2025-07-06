@@ -4,12 +4,13 @@ Contains all generalized logic
 import utils.database as database
 from utils.exceptions import *
 from datetime import datetime
+import os 
+import json
 
-config = {"dialect": "mysql", "username": "root", "password": "cctv-rootpass", "host": "mysql", "port": "3306", "db_name": "cctvdb"}
+config = json.loads(os.getenv('DB_CONNECTION_STRING', {}))
 db = database.DatabaseResource(config)
 
 def require_permissions(auth_data,permission_type):
-    #TODO: REMOVE BELOW TEMP CONDITION LATER ON
     user_id = auth_data["user_id"]
     with db.session() as conn:
         all_permissions = []

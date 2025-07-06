@@ -30,7 +30,7 @@ async def login(data: UserLogin):
      
      try:
           login_handler = LoginHandler()
-          x = login_handler.login_user(data.email,data.password)
+          x = login_handler.login_user(data.email,data.password,data.refresh_token)
           return {"responseData": x}
      except Error as e:
           # Pass through any custom raised errors as-is
@@ -62,6 +62,7 @@ async def list_users(request: Request, token: str = Header(None)):
      try:
          require_permissions(list_users.auth_data, permission_required)
          user_management = UserManagement()
+         print("TESTttttttt>>>", user_management.list_all_users())
          return {"responseData": user_management.list_all_users()}
      except Error as e:
           # Pass through any custom raised errors as-is
