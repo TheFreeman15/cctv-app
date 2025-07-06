@@ -136,3 +136,5 @@ Use below details for default login
   "email": "hritik1509@gmail.com",
   "password": "suadminpass321"
 }
+
+Note: Secrets are hardcoded currently in docker-compose.yml. In actual production scenarios this has to be driven via secrets
