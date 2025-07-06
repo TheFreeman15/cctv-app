@@ -7,6 +7,7 @@ import redis
 import json
 from functools import wraps
 import os
+from logger import logger
 
 config = json.loads(os.getenv('DB_CONNECTION_STRING', {}))
 
@@ -58,6 +59,7 @@ class LoginHandler():
                 
                 existing_user = conn.query(database.User).filter(database.User.email == email).first()
                 if existing_user is None:
+                    logger.info(f"User with email {email} does not exist!")
                     raise Error(status_code=400,details="User does not exist!")
                 
                 self.create_redis_client()
@@ -76,6 +78,7 @@ class LoginHandler():
                         if refresh_token_data is None:
                             raise Error(status_code=401,details="Invalid refresh token!")
                     except jwt.ExpiredSignatureError:
+                        logger.info(f"Refresh token for user {email} has expired!")
                         raise Error(status_code=401, details="Token expired") 
                     except Exception as e:
                         raise Error(status_code=401,details="Invalid token!")
@@ -150,10 +153,9 @@ class LoginHandler():
                 if payload["user_email"] != cache_data["user_email"]:
                     raise Error(status_code=400,details="Invalid token/user")
             
-            print(cache_data)
             wrapper.auth_data = cache_data
             retval = await func(*args, **kwargs)
-
+            logger.info(f"User {cache_data['user_email']} authenticated successfully!")
             return retval
         return wrapper
     

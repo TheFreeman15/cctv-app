@@ -3,6 +3,7 @@ from fastapi.responses import JSONResponse
 from utils.exceptions import *
 from application.api.v1 import v1
 import datetime
+from logger import logger
 
 
 # from middleware import Middle

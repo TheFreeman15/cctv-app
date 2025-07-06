@@ -7,6 +7,7 @@ from datetime import datetime
 from .authentication import LoginHandler
 from .service import audit_log
 import os
+from logger import logger
 
 config = json.loads(os.getenv('DB_CONNECTION_STRING', {}))
 db = database.DatabaseResource(config)
@@ -58,6 +59,7 @@ class CameraManagement():
             # Create a new camera object
             existing_camera = conn.query(database.Camera).filter(database.Camera.device_name == camera_data.device_name).first()
             if existing_camera:
+                logger.info(f"Camera with name {camera_data.device_name} already exists!")
                 raise Error(status_code=400, details="Camera with this name already exists!")
             
             new_camera = database.Camera(
@@ -120,6 +122,7 @@ class CameraManagement():
             # Check if the camera exists
             existing_camera = conn.query(database.Camera).filter(database.Camera.device_name == camera_data.device_name).first()
             if not existing_camera:
+
                 raise Error(status_code=404, details="Camera not found!")
             
             # Check if the user exists
